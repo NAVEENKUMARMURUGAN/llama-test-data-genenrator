@@ -5,7 +5,7 @@ from data_generator import DataGenerator
 from db_connection import DBConnection
 from table_schema import TableSchema
 from data_converter import DataConverter
-from PIL import Image
+
 
 def main():
     st.title("AI-Powered Test Data Generator")
@@ -38,11 +38,14 @@ def main():
             format_options = ['CSV', 'JSON', 'EXCEL', 'PARQUET']
             selected_format = st.selectbox("Select Export Format", format_options)
 
+            no_of_records_options = [5, 50, 500, 1000]
+            selected_no_of_records = st.selectbox("Enter number of records (max 1000):", no_of_records_options)
+
             if st.button("Generate Data"):
                 tsobj = TableSchema(st.session_state.conn)
                 schemas = {table: tsobj.get_table_schema(table) for table in selected_tables}
                 dgobj = DataGenerator(st.session_state.conn, st.session_state.relationships)
-                generated_data = dgobj.generate_data_for_tables(selected_tables, schemas)
+                generated_data = dgobj.generate_data_for_tables(selected_tables, schemas, selected_no_of_records)
 
                 all_data_files = []
                 dcobj = DataConverter()
@@ -50,7 +53,7 @@ def main():
                     if data:
                         st.write(f"Generated Data for {table}:")
                         st.code(data[:1000] + "..." if len(data) > 1000 else data, language='sql')
-
+                        st.write(data)
                         converted_data, filename = dcobj.convert_data_to_format(data, selected_format, table)
                         all_data_files.append((converted_data, filename))
                     else:
