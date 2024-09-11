@@ -1,5 +1,6 @@
 provider "aws" {
   region = "us-southeast-2" 
+}
 
 resource "aws_security_group" "app_security_group" {
   name        = "MyWebAppSG"
@@ -62,8 +63,8 @@ resource "aws_instance" "app_instance" {
               chmod +x /usr/local/bin/docker-compose
 
               # Clone your repository
-              git clone https://github.com/yourusername/yourrepository.git /home/ec2-user/app
-              cd /home/ec2-user/app/app
+              git clone git@github.com:NAVEENKUMARMURUGAN/llama-test-data-genenrator.git /home/ec2-user/app
+              cd /home/ec2-user/app
               # Create the Docker container for PostgreSQL
               docker-compose up -d
 
@@ -73,7 +74,7 @@ resource "aws_instance" "app_instance" {
               # Install required Python packages
               pip install -r requirements.txt
               # Run the Streamlit application
-              nohup streamlit run your_script.py --server.port 8501 &
+              nohup streamlit run ./app/app.py --server.port 8501 &
               EOF
 
   tags = {
