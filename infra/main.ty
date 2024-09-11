@@ -1,0 +1,82 @@
+provider "aws" {
+  region = "us-southeast-2" 
+
+resource "aws_security_group" "app_security_group" {
+  name        = "MyWebAppSG"
+  description = "Allow SSH, Streamlit, and PostgreSQL traffic"
+  vpc_id      = aws_vpc.main.id # Ensure you have a VPC defined or replace with your existing VPC ID
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks  = ["49.186.158.160/32"]  # Replace with your actual IP address for SSH access
+    description = "Allow SSH access"
+  }
+
+  ingress {
+    from_port   = 8501
+    to_port     = 8501
+    protocol    = "tcp"
+    cidr_blocks  = ["0.0.0.0/0"]   # Allow access from anywhere (consider security implications)
+    description = "Allow Streamlit access"
+  }
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks  = ["0.0.0.0/0"]   # Allow access from anywhere (consider security implications)
+    description = "Allow PostgreSQL access"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1" # Allow all outbound traffic
+    cidr_blocks  = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "app_instance" {
+  ami           = "ami-0474411b350de35fb" # Amazon Linux 2023 AMI 2023.5.20240903.0 x86_64 HVM kernel-6.1
+  instance_type = "inf1.xlarge" # Inference instance
+  key_name      = "llama-setup" 
+
+  security_groups = [aws_security_group.app_security_group.name]
+
+  user_data = <<-EOF
+              #!/bin/bash
+              yum update -y
+              amazon-linux-extras install docker git -y
+              service docker start
+              usermod -aG docker ec2-user
+              
+              # Install Ollama
+              curl -sSfL https://get.ollama.com | sh
+              # Verify installation
+              ollama version
+
+              # Install Docker Compose
+              curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              chmod +x /usr/local/bin/docker-compose
+
+              # Clone your repository
+              git clone https://github.com/yourusername/yourrepository.git /home/ec2-user/app
+              cd /home/ec2-user/app/app
+              # Create the Docker container for PostgreSQL
+              docker-compose up -d
+
+              # Run Ollama to create the model
+              ollama create "llama-synta" -f ./synta
+
+              # Install required Python packages
+              pip install -r requirements.txt
+              # Run the Streamlit application
+              nohup streamlit run your_script.py --server.port 8501 &
+              EOF
+
+  tags = {
+    Name = "MyWebAppInstance"
+  }
+}
