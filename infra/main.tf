@@ -103,7 +103,7 @@ resource "aws_security_group" "app_security_group" {
 
 resource "aws_instance" "app_instance" {
   ami           = "ami-0474411b350de35fb" 
-  instance_type = "c3.8xlarge" 
+  instance_type = "g4dn.xlarge" 
   key_name      = "llama-setup" 
 
   vpc_security_group_ids = [aws_security_group.app_security_group.id]
@@ -155,10 +155,10 @@ resource "aws_instance" "app_instance" {
               ollama create "llama-synta" -f ./synta || { echo 'Ollama create failed'; exit 1; }
 
               # Install required Python packages
-              pip3 install -r requirements.txt || { echo 'Python packages installation failed'; exit 1; }
+              pip3 install --user -r requirements.txt || { echo 'Python packages installation failed'; exit 1; }
               
               # Run the Streamlit application
-              nohup streamlit run ./app/app.py --server.port 8501 &
+              nohup streamlit run app.py --server.port 8501 &
               EOF
 
   tags = {
